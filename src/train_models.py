@@ -17,9 +17,9 @@ from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 import joblib
 
-from utils import ensure_directory, print_section
+from .utils import ensure_directory, print_section
 
-from config import RAW_DATA_DIR, MODEL_DIR
+from .config import RAW_DATA_DIR, MODEL_DIR
 
 
 # -----------------------------

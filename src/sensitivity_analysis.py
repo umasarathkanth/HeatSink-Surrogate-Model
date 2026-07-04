@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
 
-from config import MODEL_DIR, RAW_DATA_DIR
+from src.config import MODEL_DIR, RAW_DATA_DIR
 
 # -----------------------------
 # Load Data

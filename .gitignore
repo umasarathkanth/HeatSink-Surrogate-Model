@@ -11,9 +11,6 @@ __pycache__/
 # Model files
 *.pkl
 
-# Jupyter
-.ipynb_checkpoints/
-
 # OS files
 .DS_Store
 Thumbs.db

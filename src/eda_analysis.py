@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
-from utils import print_section, ensure_directory
-from config import RAW_DATA_DIR
+from src.utils import print_section, ensure_directory
+from src.config import RAW_DATA_DIR
 
 
 def load_data():

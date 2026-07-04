@@ -11,19 +11,16 @@ from pathlib import Path
 import pandas as pd
 import joblib
 
-from utils import (
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+from src.utils import (
     ensure_directory,
     save_dataframe,
     print_section,
     plot_correlation_heatmap,
     plot_feature_importance,    
 )
-
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
-from utils import ensure_directory, save_dataframe, print_section
-
-from config import RAW_DATA_DIR, MODEL_DIR
+from src.config import RAW_DATA_DIR, MODEL_DIR
 
 
 # -----------------------------
@@ -133,9 +130,9 @@ def evaluate_models() -> pd.DataFrame:
 # -----------------------------
 # Main
 # -----------------------------
-    def main():
-        evaluate_models()
+def main():
+    evaluate_models()
 
 
-    if __name__ == "__main__":
-        main()
+if __name__ == "__main__":
+    main()

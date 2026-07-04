@@ -10,9 +10,9 @@ from pathlib import Path
 import pandas as pd
 from scipy.stats import qmc
 
-from utils import ensure_directory, save_dataframe, print_section
+from src.utils import ensure_directory, save_dataframe, print_section
 
-from config import (
+from src.config import (
     DATASET_SIZE,
     RAW_DATA_DIR,
     TDP_RANGE,
@@ -20,7 +20,7 @@ from config import (
     TIM_CONDUCTIVITY_RANGE,
 )
 
-from heat_sink_model import calculate_heat_sink
+from src.heat_sink_model import calculate_heat_sink
 
 
 def generate_dataset(n_samples: int = DATASET_SIZE) -> pd.DataFrame:
