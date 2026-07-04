@@ -1,87 +1,108 @@
 """
 parameter_sweep.py
 
-Generates dataset using physics-based heat sink model
-for surrogate machine learning training.
+Generate a surrogate-model dataset using Latin Hypercube Sampling (LHS)
+and the physics-based heat sink model.
 """
 
-import numpy as np
+from pathlib import Path
+
 import pandas as pd
 from scipy.stats import qmc
+
+from config import (
+    DATASET_SIZE,
+    RAW_DATA_DIR,
+    TDP_RANGE,
+    AIR_VELOCITY_RANGE,
+    TIM_CONDUCTIVITY_RANGE,
+)
 
 from heat_sink_model import calculate_heat_sink
 
 
-def generate_dataset(n_samples: int = 5000) -> pd.DataFrame:
+def generate_dataset(n_samples: int = DATASET_SIZE) -> pd.DataFrame:
     """
-    Generate dataset using Latin Hypercube Sampling.
+    Generate a dataset using Latin Hypercube Sampling.
 
     Args:
-        n_samples: Number of samples to generate.
+        n_samples: Number of parameter combinations.
 
     Returns:
-        DataFrame containing inputs and outputs.
+        Pandas DataFrame containing the generated dataset.
     """
 
-    # -----------------------------
-    # Parameter ranges
-    # -----------------------------
-    tdp_range = (30, 250)
-    air_velocity_range = (0.5, 15)
-    k_tim_range = (1, 12)
-
-    # -----------------------------
-    # LHS Sampling
-    # -----------------------------
     sampler = qmc.LatinHypercube(d=3)
-    sample = sampler.random(n_samples)
 
-    scaled = qmc.scale(
-        sample,
-        [tdp_range[0], air_velocity_range[0], k_tim_range[0]],
-        [tdp_range[1], air_velocity_range[1], k_tim_range[1]]
+    samples = sampler.random(n_samples)
+
+    scaled_samples = qmc.scale(
+        samples,
+        [TDP_RANGE[0], AIR_VELOCITY_RANGE[0], TIM_CONDUCTIVITY_RANGE[0]],
+        [TDP_RANGE[1], AIR_VELOCITY_RANGE[1], TIM_CONDUCTIVITY_RANGE[1]],
     )
 
-    data = []
+    dataset = []
 
-    # -----------------------------
-    # Physics simulation loop
-    # -----------------------------
-    for tdp, v_air, k_tim in scaled:
+    for tdp, air_velocity, k_tim in scaled_samples:
 
         result = calculate_heat_sink(
             tdp=tdp,
-            air_velocity=v_air,
-            k_tim=k_tim
+            air_velocity=air_velocity,
+            k_tim=k_tim,
         )
 
-        data.append({
-            "tdp": tdp,
-            "air_velocity": v_air,
-            "k_tim": k_tim,
-            "reynolds_number": result["reynolds_number"],
-            "nusselt_number": result["nusselt_number"],
-            "heat_transfer_coefficient": result["heat_transfer_coefficient"],
-            "tim_resistance": result["tim_resistance"],
-            "conduction_resistance": result["conduction_resistance"],
-            "convection_resistance": result["convection_resistance"],
-            "total_thermal_resistance": result["total_thermal_resistance"],
-            "junction_temperature": result["junction_temperature"],
-        })
+        dataset.append(
+            {
+                "tdp": tdp,
+                "air_velocity": air_velocity,
+                "k_tim": k_tim,
+                "reynolds_number": result["reynolds_number"],
+                "nusselt_number": result["nusselt_number"],
+                "heat_transfer_coefficient": result[
+                    "heat_transfer_coefficient"
+                ],
+                "tim_resistance": result["tim_resistance"],
+                "conduction_resistance": result["conduction_resistance"],
+                "convection_resistance": result["convection_resistance"],
+                "total_thermal_resistance": result[
+                    "total_thermal_resistance"
+                ],
+                "junction_temperature": result["junction_temperature"],
+            }
+        )
 
-    return pd.DataFrame(data)
+    return pd.DataFrame(dataset)
 
 
-def save_dataset(df: pd.DataFrame, path: str = "data/heat_sink_dataset.csv"):
+def save_dataset(df: pd.DataFrame) -> Path:
     """
-    Save dataset to CSV.
+    Save the generated dataset.
+
+    Args:
+        df: Dataset to save.
+
+    Returns:
+        Path to the saved CSV file.
     """
-    df.to_csv(path, index=False)
-    print(f"Dataset saved to {path}")
+
+    output_path = RAW_DATA_DIR / "heat_sink_dataset.csv"
+
+    df.to_csv(output_path, index=False)
+
+    return output_path
 
 
 if __name__ == "__main__":
-    df = generate_dataset(n_samples=5000)
-    save_dataset(df)
-    print(f"Dataset shape: {df.shape}")
-    print(df.head())
+
+    dataset = generate_dataset()
+
+    output_file = save_dataset(dataset)
+
+    print("=" * 60)
+    print("Dataset Generation Completed")
+    print("=" * 60)
+    print(f"Dataset Shape : {dataset.shape}")
+    print(f"Saved To      : {output_file}")
+    print("\nFirst Five Samples:\n")
+    print(dataset.head())

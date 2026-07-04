@@ -1,0 +1,17 @@
+{
+    "test_size": 0.2,
+    "random_state": 42,
+    "features": [
+        "tdp",
+        "air_velocity",
+        "k_tim"
+    ],
+    "targets": [
+        "total_thermal_resistance",
+        "junction_temperature"
+    ],
+    "models": [
+        "RandomForest",
+        "XGBoost"
+    ]
+}
