@@ -10,6 +10,8 @@ from pathlib import Path
 import pandas as pd
 from scipy.stats import qmc
 
+from utils import ensure_directory, save_dataframe, print_section
+
 from config import (
     DATASET_SIZE,
     RAW_DATA_DIR,
@@ -59,15 +61,11 @@ def generate_dataset(n_samples: int = DATASET_SIZE) -> pd.DataFrame:
                 "k_tim": k_tim,
                 "reynolds_number": result["reynolds_number"],
                 "nusselt_number": result["nusselt_number"],
-                "heat_transfer_coefficient": result[
-                    "heat_transfer_coefficient"
-                ],
+                "heat_transfer_coefficient": result["heat_transfer_coefficient"],
                 "tim_resistance": result["tim_resistance"],
                 "conduction_resistance": result["conduction_resistance"],
                 "convection_resistance": result["convection_resistance"],
-                "total_thermal_resistance": result[
-                    "total_thermal_resistance"
-                ],
+                "total_thermal_resistance": result["total_thermal_resistance"],
                 "junction_temperature": result["junction_temperature"],
             }
         )
@@ -83,26 +81,35 @@ def save_dataset(df: pd.DataFrame) -> Path:
         df: Dataset to save.
 
     Returns:
-        Path to the saved CSV file.
+        Path to saved CSV file.
     """
 
     output_path = RAW_DATA_DIR / "heat_sink_dataset.csv"
 
-    df.to_csv(output_path, index=False)
+    save_dataframe(df, output_path)
 
     return output_path
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """
+    Entry point for dataset generation.
+    """
+
+    ensure_directory(RAW_DATA_DIR)
 
     dataset = generate_dataset()
 
     output_file = save_dataset(dataset)
 
-    print("=" * 60)
-    print("Dataset Generation Completed")
-    print("=" * 60)
+    print_section("Dataset Generation Completed")
+
     print(f"Dataset Shape : {dataset.shape}")
     print(f"Saved To      : {output_file}")
+
     print("\nFirst Five Samples:\n")
     print(dataset.head())
+
+
+if __name__ == "__main__":
+    main()

@@ -1,116 +1,81 @@
 """
 evaluate_models.py
 
-Evaluate the trained surrogate models using:
+Evaluates trained surrogate models using:
 - MAE
 - RMSE
 - R² Score
-
-The evaluation results are printed to the console
-and saved as a CSV file.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
-
-import joblib
 import pandas as pd
+import joblib
 
-from sklearn.metrics import (
-    mean_absolute_error,
-    mean_squared_error,
-    r2_score,
+from utils import (
+    ensure_directory,
+    save_dataframe,
+    print_section,
+    plot_correlation_heatmap,
+    plot_feature_importance,    
 )
 
-from config import MODEL_DIR, SPLIT_DATA_DIR
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-# =============================================================================
-# Paths
-# =============================================================================
+from utils import ensure_directory, save_dataframe, print_section
 
-REPORTS_DIR = Path("reports")
-METRICS_DIR = REPORTS_DIR / "metrics"
-
-METRICS_DIR.mkdir(parents=True, exist_ok=True)
+from config import RAW_DATA_DIR, MODEL_DIR
 
 
-# =============================================================================
+# -----------------------------
 # Load Test Data
-# =============================================================================
-
-def load_test_data():
+# -----------------------------
+def load_data():
     """
-    Load the saved test split.
-
-    Returns
-    -------
-    tuple
-        X_test, y_test
+    Load dataset for evaluation.
     """
-
-    X_test = pd.read_csv(SPLIT_DATA_DIR / "X_test.csv")
-    y_test = pd.read_csv(SPLIT_DATA_DIR / "y_test.csv")
-
-    return X_test, y_test
+    df = pd.read_csv(RAW_DATA_DIR / "heat_sink_dataset.csv")
+    return df
 
 
-# =============================================================================
-# Evaluate
-# =============================================================================
-
+# -----------------------------
+# Evaluation Function
+# -----------------------------
 def evaluate_models() -> pd.DataFrame:
-    """
-    Evaluate all trained models.
 
-    Returns
-    -------
-    pd.DataFrame
-        Evaluation metrics.
-    """
+    print_section("Model Evaluation Started")
 
-    X_test, y_test = load_test_data()
+    df = load_data()
 
-    models = {
-        "RandomForest": [
-            "RandomForest_total_thermal_resistance.pkl",
-            "RandomForest_junction_temperature.pkl",
-        ],
-        "XGBoost": [
-            "XGBoost_total_thermal_resistance.pkl",
-            "XGBoost_junction_temperature.pkl",
-        ],
-    }
+    features = ["tdp", "air_velocity", "k_tim"]
+
+    X = df[features]
 
     targets = [
         "total_thermal_resistance",
         "junction_temperature",
     ]
 
+    models = {
+        "RandomForest": "RandomForest_{}",
+        "XGBoost": "XGBoost_{}",
+    }
+
     results = []
 
-    for model_name, model_files in models.items():
+    for model_name, model_pattern in models.items():
 
-        for model_file, target in zip(model_files, targets):
+        for target in targets:
 
-            model = joblib.load(MODEL_DIR / model_file)
+            model_path = MODEL_DIR / f"{model_name}_{target}.pkl"
 
-            predictions = model.predict(X_test)
+            model = joblib.load(model_path)
 
-            mae = mean_absolute_error(
-                y_test[target],
-                predictions,
-            )
+            y_true = df[target]
+            y_pred = model.predict(X)
 
-            rmse = mean_squared_error(
-                y_test[target],
-                predictions,
-            ) ** 0.5
-
-            r2 = r2_score(
-                y_test[target],
-                predictions,
-            )
+            mae = mean_absolute_error(y_true, y_pred)
+            rmse = mean_squared_error(y_true, y_pred) ** 0.5
+            r2 = r2_score(y_true, y_pred)
 
             results.append(
                 {
@@ -122,46 +87,55 @@ def evaluate_models() -> pd.DataFrame:
                 }
             )
 
-    return pd.DataFrame(results)
+            print(f"Evaluated {model_name} on {target}")
 
+    results_df = pd.DataFrame(results)
+    
+    # =============================
+    # SAVE VISUALIZATIONS
+    # =============================
 
-# =============================================================================
-# Save Results
-# =============================================================================
+    plot_dir = Path("reports/figures")
+    ensure_directory(plot_dir)
 
-def save_results(df: pd.DataFrame) -> None:
-    """
-    Save evaluation metrics.
-    """
-
-    output_path = METRICS_DIR / "model_metrics.csv"
-
-    df.to_csv(
-        output_path,
-        index=False,
+    # 1. Correlation Heatmap
+    plot_correlation_heatmap(
+        df,
+        plot_dir / "correlation_heatmap.png"
     )
 
+    # 2. Feature Importance (Random Forest example)
+    rf_model = joblib.load(
+        MODEL_DIR / "RandomForest_total_thermal_resistance.pkl"
+    )
 
-# =============================================================================
+    plot_feature_importance(
+        rf_model,
+        ["tdp", "air_velocity", "k_tim"],
+        plot_dir / "rf_feature_importance.png",
+        "Random Forest Feature Importance"
+    )
+
+    output_path = Path("reports/metrics/model_metrics.csv")
+
+    ensure_directory(output_path.parent)
+    save_dataframe(results_df, output_path)
+
+    print_section("Model Evaluation Completed")
+
+    print(results_df)
+
+    print(f"\nSaved metrics to: {output_path}")
+
+    return results_df
+
+
+# -----------------------------
 # Main
-# =============================================================================
-
-def main():
-
-    results = evaluate_models()
-
-    save_results(results)
-
-    print("\n" + "=" * 75)
-    print("MODEL EVALUATION RESULTS")
-    print("=" * 75)
-    print(results.to_string(index=False))
-    print("=" * 75)
-
-    print(
-        f"\nMetrics saved to: {METRICS_DIR / 'model_metrics.csv'}"
-    )
+# -----------------------------
+    def main():
+        evaluate_models()
 
 
-if __name__ == "__main__":
-    main()
+    if __name__ == "__main__":
+        main()
